@@ -2,10 +2,15 @@
 #include <ESP8266WiFi.h>
 #include "FS.h"
 #include <WebSocketsServer.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 //////////////////////
 // WiFi Definitions //
 //////////////////////
 const char WiFiAPPSK[] = "manchester";
+const char* host = "esp8266fs";
+
+
 #define MOTOR1_A 16
 #define MOTOR1_B 14
 
@@ -22,7 +27,7 @@ const char WiFiAPPSK[] = "manchester";
 // Pin Definitions //
 /////////////////////
 
-WiFiServer server(80);
+ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
 uint8_t last_socket_num;
 int Wheel_FL,Wheel_FR,Wheel_BL,Wheel_BR; //Front Left, Front Right, Back Left, Back Right
@@ -31,17 +36,17 @@ void setup()
   initHardware();
   setupWiFi();
   server.begin();
-  //bool s_result=SPIFFS.begin();
-  ////Serial.println("SPIFFS opened: " + s_result);
-  //Dir dir = SPIFFS.openDir("/");
+  bool s_result=SPIFFS.begin();
+  Serial.println("SPIFFS opened: " + s_result);
+  Dir dir = SPIFFS.openDir("/");
 //Serial.println("Hello world");
-/*while (dir.next()) {
-    //Serial.print(dir.fileName());
+while (dir.next()) {
+    Serial.print(dir.fileName());
     File f = dir.openFile("r");
-    //Serial.println(f.size());
-}*/
+    Serial.println(f.size());
+}
 webSocket.begin();
-//Serial.println("Websocket created ");
+Serial.println("Websocket created ");
 webSocket.onEvent(webSocketEvent);
 
 //pinMode(MOTOR1_A,OUTPUT);
@@ -50,8 +55,8 @@ webSocket.onEvent(webSocketEvent);
 //pinMode(MOTOR2_A,OUTPUT);
 //pinMode(MOTOR2_B,OUTPUT);
 
-pinMode(MOTOR3_A,OUTPUT); //motor 3 is OK
-pinMode(MOTOR3_B,OUTPUT);
+//pinMode(MOTOR3_A,OUTPUT); //motor 3 is OK
+//pinMode(MOTOR3_B,OUTPUT);
 
 pinMode(MOTOR4_A,OUTPUT); //motor 4 is OK
 pinMode(MOTOR4_B,OUTPUT);
@@ -68,10 +73,80 @@ digitalWrite(MOTOR4_B,LOW);
 
 
 }
+//format bytes
+String formatBytes(size_t bytes){
+  if (bytes < 1024){
+    return String(bytes)+"B";
+  } else if(bytes < (1024 * 1024)){
+    return String(bytes/1024.0)+"KB";
+  } else if(bytes < (1024 * 1024 * 1024)){
+    return String(bytes/1024.0/1024.0)+"MB";
+  } else {
+    return String(bytes/1024.0/1024.0/1024.0)+"GB";
+  }
+}
+
+String getContentType(String filename){
+  if(server.hasArg("download")) return "application/octet-stream";
+  else if(filename.endsWith(".htm")) return "text/html";
+  else if(filename.endsWith(".html")) return "text/html";
+  else if(filename.endsWith(".css")) return "text/css";
+  else if(filename.endsWith(".js")) return "application/javascript";
+  else if(filename.endsWith(".png")) return "image/png";
+  else if(filename.endsWith(".gif")) return "image/gif";
+  else if(filename.endsWith(".jpg")) return "image/jpeg";
+  else if(filename.endsWith(".ico")) return "image/x-icon";
+  else if(filename.endsWith(".xml")) return "text/xml";
+  else if(filename.endsWith(".pdf")) return "application/x-pdf";
+  else if(filename.endsWith(".zip")) return "application/x-zip";
+  else if(filename.endsWith(".gz")) return "application/x-gzip";
+  return "text/plain";
+}
+
+bool handleFileRead(String path){
+  Serial.println("handleFileRead: " + path);
+  if(path.endsWith("/")) path += "index.htm";
+  String contentType = getContentType(path);
+  String pathWithGz = path + ".gz";
+  if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){
+    if(SPIFFS.exists(pathWithGz))
+      path += ".gz";
+    File file = SPIFFS.open(path, "r");
+    size_t sent = server.streamFile(file, contentType);
+    file.close();
+    return true;
+  }
+  return false;
+}
 
 
+void handleFileList() {
+  if(!server.hasArg("dir")) {server.send(500, "text/plain", "BAD ARGS"); return;}
+  
+  String path = server.arg("dir");
+  Serial.println("handleFileList: " + path);
+  Dir dir = SPIFFS.openDir(path);
+  path = String();
 
-#define USE_//Serial //Serial
+  String output = "[";
+  while(dir.next()){
+    File entry = dir.openFile("r");
+    if (output != "[") output += ',';
+    bool isDir = false;
+    output += "{\"type\":\"";
+    output += (isDir)?"dir":"file";
+    output += "\",\"name\":\"";
+    output += String(entry.name()).substring(1);
+    output += "\"}";
+    entry.close();
+  }
+  
+  output += "]";
+  server.send(200, "text/json", output);
+}
+
+  
+//#define USE_//Serial //Serial
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
 int c_index;
@@ -82,19 +157,19 @@ last_socket_num=num;
  ESP.wdtFeed();
     switch(type) {
         case WStype_DISCONNECTED:
-            USE_//Serial.printf("[%u] Disconnected!\n", num);
+            Serial.printf("[%u] Disconnected!\n", num);
             break;
         case WStype_CONNECTED:
             {
                 IPAddress ip = webSocket.remoteIP(num);
-                USE_//Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+                Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
         
         // send message to client
         webSocket.sendTXT(num, "Connected");
             }
             break;
         case WStype_TEXT:
-            USE_//Serial.printf("[%u] get Text: %s\n", num, payload);
+            Serial.printf("[%u] get Text: %s\n", num, payload);
             command=String((char*)payload);
 
             //First, get speed
@@ -167,7 +242,7 @@ SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
             // webSocket.broadcastTXT("message here");
             break;
         case WStype_BIN:
-            USE_//Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
+            Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
             hexdump(payload, lenght);
 
             // send message to client
@@ -281,51 +356,8 @@ digitalWrite(MOTOR3_B,HIGH);
 
 void loop() 
 {
-  webSocket.loop();
-   // Check if a client has connected
-  WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
-  
-  // Wait until the client sends some data
-  //Serial.println("new client");
-  while(!client.available()){
-    ESP.wdtFeed();
-    delay(1);
-  }
-  
-  // Read the first line of the request
-  String req = client.readStringUntil('\r');
-  //Serial.println(req);
-  client.flush();
-  
-  // Match the request
-  int val;
-  if (req.indexOf("/gpio/0") != -1)
-    val = 0;
-  else if (req.indexOf("/gpio/1") != -1)
-    val = 1;
-  else {
-    //Serial.println("invalid request");
-    client.stop();
-    return;
-  }
-
-  // Set GPIO2 according to the request
-  digitalWrite(2, val);
-  
-  client.flush();
-
-  // Prepare the response
-  String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>\r\nGPIO is now ";
-  s += (val)?"high":"low";
-  s += "</html>\n";
-
-  // Send the response to the client
-  client.print(s);
-  delay(1);
-  //Serial.println("Client disonnected");
+ webSocket.loop();
+ server.handleClient();
 }
 
 void setupWiFi()
@@ -354,19 +386,47 @@ void setupWiFi()
   WiFi.softAPConfig(Ip, Ip, NMask);
  if (!WiFi.softAP( AP_NameChar, WiFiAPPSK))
   {
-   ////Serial.println("WiFi.softAP failed.(Password too short?)");
+   Serial.println("WiFi.softAP failed.(Password too short?)");
    return;
   }
   IPAddress myIP = WiFi.softAPIP();
-  ////Serial.println();
-  ////Serial.print("AP IP address: ");
-  ////Serial.println(myIP);
+  Serial.println();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
   
- 
+  MDNS.begin(host);
+  Serial.print("Open http://");
+  Serial.print(host);
+ Serial.println(".local/edit to see the file browser");
+
+   //SERVER INIT
+  //list directory
+  server.on("/list", HTTP_GET, handleFileList);
+  //load editor
+  server.on("/edit", HTTP_GET, [](){
+    if(!handleFileRead("/edit.htm")) server.send(404, "text/plain", "FileNotFound");
+  });
+  server.onNotFound([](){
+    if(!handleFileRead(server.uri()))
+      server.send(404, "text/plain", "FileNotFound");
+  });
+
+  //get heap status, analog input value and all GPIO statuses in one json call
+  server.on("/all", HTTP_GET, [](){
+    String json = "{";
+    json += "\"heap\":"+String(ESP.getFreeHeap());
+    json += ", \"analog\":"+String(analogRead(A0));
+    json += ", \"gpio\":"+String((uint32_t)(((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16)));
+    json += "}";
+    server.send(200, "text/json", json);
+    json = String();
+  });
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void initHardware()
 {
-  //Serial.begin(115200);
+  Serial.begin(115200);
 // ESP.wdtDisable();
 }
