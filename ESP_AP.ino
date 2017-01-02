@@ -32,16 +32,16 @@ void setup()
   setupWiFi();
   server.begin();
   //bool s_result=SPIFFS.begin();
-  //Serial.println("SPIFFS opened: " + s_result);
+  ////Serial.println("SPIFFS opened: " + s_result);
   //Dir dir = SPIFFS.openDir("/");
-Serial.println("Hello world");
+//Serial.println("Hello world");
 /*while (dir.next()) {
-    Serial.print(dir.fileName());
+    //Serial.print(dir.fileName());
     File f = dir.openFile("r");
-    Serial.println(f.size());
+    //Serial.println(f.size());
 }*/
 webSocket.begin();
-Serial.println("Websocket created ");
+//Serial.println("Websocket created ");
 webSocket.onEvent(webSocketEvent);
 
 //pinMode(MOTOR1_A,OUTPUT);
@@ -71,7 +71,7 @@ digitalWrite(MOTOR4_B,LOW);
 
 
 
-#define USE_SERIAL Serial
+#define USE_//Serial //Serial
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
 int c_index;
@@ -79,22 +79,22 @@ String command;
 int speed1;
 last_socket_num=num;
 
- 
+ ESP.wdtFeed();
     switch(type) {
         case WStype_DISCONNECTED:
-            USE_SERIAL.printf("[%u] Disconnected!\n", num);
+            USE_//Serial.printf("[%u] Disconnected!\n", num);
             break;
         case WStype_CONNECTED:
             {
                 IPAddress ip = webSocket.remoteIP(num);
-                USE_SERIAL.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+                USE_//Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
         
         // send message to client
         webSocket.sendTXT(num, "Connected");
             }
             break;
         case WStype_TEXT:
-            USE_SERIAL.printf("[%u] get Text: %s\n", num, payload);
+            USE_//Serial.printf("[%u] get Text: %s\n", num, payload);
             command=String((char*)payload);
 
             //First, get speed
@@ -103,8 +103,8 @@ last_socket_num=num;
             if (c_index>0)
             {
               speed1=command.substring(c_index+1).toInt();
-              Serial.print("Got speed ");
-              Serial.println(speed1);
+              //Serial.print("Got speed ");
+              //Serial.println(speed1);
             }
               Wheel_FL=0;
               Wheel_FR=0;
@@ -147,19 +147,18 @@ last_socket_num=num;
   Wheel_BL=0;
   Wheel_BR=0;
   }
-/*Serial.print("Wheel_FL ");
-Serial.println(Wheel_FL);
-Serial.print("Wheel_FR ");
-Serial.println(Wheel_FR);
-Serial.print("Wheel_BL ");
-Serial.println(Wheel_BL);
-Serial.print("Wheel_BR ");
-Serial.println(Wheel_BR);*/
+/*//Serial.print("Wheel_FL ");
+//Serial.println(Wheel_FL);
+//Serial.print("Wheel_FR ");
+//Serial.println(Wheel_FR);
+//Serial.print("Wheel_BL ");
+//Serial.println(Wheel_BL);
+//Serial.print("Wheel_BR ");
+//Serial.println(Wheel_BR);*/
             
 SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
 
-              if (command.indexOf("0000")>0)
-              Serial.println("STOP");
+              
 
             // send message to client
             // webSocket.sendTXT(num, "message here");
@@ -168,7 +167,7 @@ SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
             // webSocket.broadcastTXT("message here");
             break;
         case WStype_BIN:
-            USE_SERIAL.printf("[%u] get binary lenght: %u\n", num, lenght);
+            USE_//Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
             hexdump(payload, lenght);
 
             // send message to client
@@ -183,14 +182,15 @@ SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
 
 void SetMotors(int FL, int FR, int BL, int BR)
 {
-/*Serial.print("FL ");
-Serial.println(FL);
-Serial.print("FR ");
-Serial.println(FR);
-Serial.print("BL ");
-Serial.println(BL);
-Serial.print("BR ");
-Serial.println(BR);*/
+  ESP.wdtFeed();
+/*//Serial.print("FL ");
+//Serial.println(FL);
+//Serial.print("FR ");
+//Serial.println(FR);
+//Serial.print("BL ");
+//Serial.println(BL);
+//Serial.print("BR ");
+//Serial.println(BR);*/
 //webSocket.sendTXT(last_socket_num, "\nFL ");
   if (FL==0)
   {
@@ -230,7 +230,7 @@ digitalWrite(MOTOR2_B,HIGH);
     if (BL==0)
   {
    //  webSocket.sendTXT(last_socket_num, "STOP\n");
-Serial.println("BL STOP");
+//Serial.println("BL STOP");
 
 digitalWrite(MOTOR4_A,LOW);
 digitalWrite(MOTOR4_B,LOW);
@@ -238,7 +238,7 @@ digitalWrite(MOTOR4_B,LOW);
  else if (BL>0)
  {
  // webSocket.sendTXT(last_socket_num, "FWD\n");
- Serial.println("BL FWD");
+ //Serial.println("BL FWD");
 digitalWrite(MOTOR4_B,LOW);
 digitalWrite(MOTOR4_A,HIGH);
 
@@ -246,7 +246,7 @@ digitalWrite(MOTOR4_A,HIGH);
   else if (BL<0)
   {
      // webSocket.sendTXT(last_socket_num, "BACK\n");
-Serial.println("BL BACK");
+//Serial.println("BL BACK");
 digitalWrite(MOTOR4_A,LOW);
 digitalWrite(MOTOR4_B,HIGH);
   }
@@ -256,21 +256,21 @@ digitalWrite(MOTOR4_B,HIGH);
     if (BR==0)
   {
    // webSocket.sendTXT(last_socket_num, "STOP\n");
-   Serial.println("BR STOP");
+   //Serial.println("BR STOP");
 digitalWrite(MOTOR3_A,LOW);
 digitalWrite(MOTOR3_B,LOW);
  }
  else if (BR>0)
  {
  // webSocket.sendTXT(last_socket_num, "FWD\n");
- Serial.println("BR FWD");
+ //Serial.println("BR FWD");
 digitalWrite(MOTOR3_B,LOW);
 digitalWrite(MOTOR3_A,HIGH);
   }
   else if (BR<0)
   {
          // webSocket.sendTXT(last_socket_num, "BACK\n");
-Serial.println("BR BACK");
+//Serial.println("BR BACK");
 digitalWrite(MOTOR3_A,LOW);
 digitalWrite(MOTOR3_B,HIGH);
   }
@@ -289,14 +289,15 @@ void loop()
   }
   
   // Wait until the client sends some data
-  Serial.println("new client");
+  //Serial.println("new client");
   while(!client.available()){
+    ESP.wdtFeed();
     delay(1);
   }
   
   // Read the first line of the request
   String req = client.readStringUntil('\r');
-  Serial.println(req);
+  //Serial.println(req);
   client.flush();
   
   // Match the request
@@ -306,7 +307,7 @@ void loop()
   else if (req.indexOf("/gpio/1") != -1)
     val = 1;
   else {
-    Serial.println("invalid request");
+    //Serial.println("invalid request");
     client.stop();
     return;
   }
@@ -324,7 +325,7 @@ void loop()
   // Send the response to the client
   client.print(s);
   delay(1);
-  Serial.println("Client disonnected");
+  //Serial.println("Client disonnected");
 }
 
 void setupWiFi()
@@ -353,19 +354,19 @@ void setupWiFi()
   WiFi.softAPConfig(Ip, Ip, NMask);
  if (!WiFi.softAP( AP_NameChar, WiFiAPPSK))
   {
-   Serial.println("WiFi.softAP failed.(Password too short?)");
+   ////Serial.println("WiFi.softAP failed.(Password too short?)");
    return;
   }
   IPAddress myIP = WiFi.softAPIP();
-  Serial.println();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  ////Serial.println();
+  ////Serial.print("AP IP address: ");
+  ////Serial.println(myIP);
   
  
 }
 
 void initHardware()
 {
-  Serial.begin(115200);
-  
+  //Serial.begin(115200);
+// ESP.wdtDisable();
 }
