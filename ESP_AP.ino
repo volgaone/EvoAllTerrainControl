@@ -8,7 +8,7 @@
 // WiFi Definitions //
 //////////////////////
 const char WiFiAPPSK[] = "manchester";
-const char* host = "esp8266fs";
+const char* host = "evolution";
 
 
 #define MOTOR1_A 16
@@ -37,16 +37,16 @@ void setup()
   setupWiFi();
   server.begin();
   bool s_result=SPIFFS.begin();
-  Serial.println("SPIFFS opened: " + s_result);
+  //Serial.println("SPIFFS opened: " + s_result);
   Dir dir = SPIFFS.openDir("/");
-//Serial.println("Hello world");
-while (dir.next()) {
-    Serial.print(dir.fileName());
-    File f = dir.openFile("r");
-    Serial.println(f.size());
-}
+////Serial.println("Hello world");
+//while (dir.next()) {
+    //Serial.print(dir.fileName());
+  //  File f = dir.openFile("r");
+    //Serial.println(f.size());
+//}
 webSocket.begin();
-Serial.println("Websocket created ");
+//Serial.println("Websocket created ");
 webSocket.onEvent(webSocketEvent);
 
 //pinMode(MOTOR1_A,OUTPUT);
@@ -55,8 +55,8 @@ webSocket.onEvent(webSocketEvent);
 //pinMode(MOTOR2_A,OUTPUT);
 //pinMode(MOTOR2_B,OUTPUT);
 
-//pinMode(MOTOR3_A,OUTPUT); //motor 3 is OK
-//pinMode(MOTOR3_B,OUTPUT);
+pinMode(MOTOR3_A,OUTPUT); //motor 3 is OK
+pinMode(MOTOR3_B,OUTPUT);
 
 pinMode(MOTOR4_A,OUTPUT); //motor 4 is OK
 pinMode(MOTOR4_B,OUTPUT);
@@ -104,8 +104,8 @@ String getContentType(String filename){
 }
 
 bool handleFileRead(String path){
-  Serial.println("handleFileRead: " + path);
-  if(path.endsWith("/")) path += "index.htm";
+  //Serial.println("handleFileRead: " + path);
+  if(path.endsWith("/")) path += "index.html";
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
   if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){
@@ -124,7 +124,7 @@ void handleFileList() {
   if(!server.hasArg("dir")) {server.send(500, "text/plain", "BAD ARGS"); return;}
   
   String path = server.arg("dir");
-  Serial.println("handleFileList: " + path);
+  //Serial.println("handleFileList: " + path);
   Dir dir = SPIFFS.openDir(path);
   path = String();
 
@@ -146,7 +146,7 @@ void handleFileList() {
 }
 
   
-//#define USE_//Serial //Serial
+//#define USE_////Serial ////Serial
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
 int c_index;
@@ -157,19 +157,19 @@ last_socket_num=num;
  ESP.wdtFeed();
     switch(type) {
         case WStype_DISCONNECTED:
-            Serial.printf("[%u] Disconnected!\n", num);
+            //Serial.printf("[%u] Disconnected!\n", num);
             break;
         case WStype_CONNECTED:
             {
                 IPAddress ip = webSocket.remoteIP(num);
-                Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+                //Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
         
         // send message to client
         webSocket.sendTXT(num, "Connected");
             }
             break;
         case WStype_TEXT:
-            Serial.printf("[%u] get Text: %s\n", num, payload);
+            //Serial.printf("[%u] get Text: %s\n", num, payload);
             command=String((char*)payload);
 
             //First, get speed
@@ -178,8 +178,8 @@ last_socket_num=num;
             if (c_index>0)
             {
               speed1=command.substring(c_index+1).toInt();
-              //Serial.print("Got speed ");
-              //Serial.println(speed1);
+              ////Serial.print("Got speed ");
+              ////Serial.println(speed1);
             }
               Wheel_FL=0;
               Wheel_FR=0;
@@ -222,14 +222,14 @@ last_socket_num=num;
   Wheel_BL=0;
   Wheel_BR=0;
   }
-/*//Serial.print("Wheel_FL ");
-//Serial.println(Wheel_FL);
-//Serial.print("Wheel_FR ");
-//Serial.println(Wheel_FR);
-//Serial.print("Wheel_BL ");
-//Serial.println(Wheel_BL);
-//Serial.print("Wheel_BR ");
-//Serial.println(Wheel_BR);*/
+/*////Serial.print("Wheel_FL ");
+////Serial.println(Wheel_FL);
+////Serial.print("Wheel_FR ");
+////Serial.println(Wheel_FR);
+////Serial.print("Wheel_BL ");
+////Serial.println(Wheel_BL);
+////Serial.print("Wheel_BR ");
+////Serial.println(Wheel_BR);*/
             
 SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
 
@@ -242,7 +242,7 @@ SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
             // webSocket.broadcastTXT("message here");
             break;
         case WStype_BIN:
-            Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
+            //Serial.printf("[%u] get binary lenght: %u\n", num, lenght);
             hexdump(payload, lenght);
 
             // send message to client
@@ -258,14 +258,14 @@ SetMotors(Wheel_FL, Wheel_FR, Wheel_BL,  Wheel_BR);
 void SetMotors(int FL, int FR, int BL, int BR)
 {
   ESP.wdtFeed();
-/*//Serial.print("FL ");
-//Serial.println(FL);
-//Serial.print("FR ");
-//Serial.println(FR);
-//Serial.print("BL ");
-//Serial.println(BL);
-//Serial.print("BR ");
-//Serial.println(BR);*/
+/*////Serial.print("FL ");
+////Serial.println(FL);
+////Serial.print("FR ");
+////Serial.println(FR);
+////Serial.print("BL ");
+////Serial.println(BL);
+////Serial.print("BR ");
+////Serial.println(BR);*/
 //webSocket.sendTXT(last_socket_num, "\nFL ");
   if (FL==0)
   {
@@ -305,7 +305,7 @@ digitalWrite(MOTOR2_B,HIGH);
     if (BL==0)
   {
    //  webSocket.sendTXT(last_socket_num, "STOP\n");
-//Serial.println("BL STOP");
+////Serial.println("BL STOP");
 
 digitalWrite(MOTOR4_A,LOW);
 digitalWrite(MOTOR4_B,LOW);
@@ -313,7 +313,7 @@ digitalWrite(MOTOR4_B,LOW);
  else if (BL>0)
  {
  // webSocket.sendTXT(last_socket_num, "FWD\n");
- //Serial.println("BL FWD");
+ ////Serial.println("BL FWD");
 digitalWrite(MOTOR4_B,LOW);
 digitalWrite(MOTOR4_A,HIGH);
 
@@ -321,7 +321,7 @@ digitalWrite(MOTOR4_A,HIGH);
   else if (BL<0)
   {
      // webSocket.sendTXT(last_socket_num, "BACK\n");
-//Serial.println("BL BACK");
+////Serial.println("BL BACK");
 digitalWrite(MOTOR4_A,LOW);
 digitalWrite(MOTOR4_B,HIGH);
   }
@@ -331,21 +331,21 @@ digitalWrite(MOTOR4_B,HIGH);
     if (BR==0)
   {
    // webSocket.sendTXT(last_socket_num, "STOP\n");
-   //Serial.println("BR STOP");
+   ////Serial.println("BR STOP");
 digitalWrite(MOTOR3_A,LOW);
 digitalWrite(MOTOR3_B,LOW);
  }
  else if (BR>0)
  {
  // webSocket.sendTXT(last_socket_num, "FWD\n");
- //Serial.println("BR FWD");
+ ////Serial.println("BR FWD");
 digitalWrite(MOTOR3_B,LOW);
 digitalWrite(MOTOR3_A,HIGH);
   }
   else if (BR<0)
   {
          // webSocket.sendTXT(last_socket_num, "BACK\n");
-//Serial.println("BR BACK");
+////Serial.println("BR BACK");
 digitalWrite(MOTOR3_A,LOW);
 digitalWrite(MOTOR3_B,HIGH);
   }
@@ -386,18 +386,18 @@ void setupWiFi()
   WiFi.softAPConfig(Ip, Ip, NMask);
  if (!WiFi.softAP( AP_NameChar, WiFiAPPSK))
   {
-   Serial.println("WiFi.softAP failed.(Password too short?)");
+   //Serial.println("WiFi.softAP failed.(Password too short?)");
    return;
   }
   IPAddress myIP = WiFi.softAPIP();
-  Serial.println();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  //Serial.println();
+  //Serial.print("AP IP address: ");
+  //Serial.println(myIP);
   
   MDNS.begin(host);
-  Serial.print("Open http://");
-  Serial.print(host);
- Serial.println(".local/edit to see the file browser");
+  //Serial.print("Open http://");
+  //Serial.print(host);
+ //Serial.println(".local/edit to see the file browser");
 
    //SERVER INIT
   //list directory
@@ -422,11 +422,11 @@ void setupWiFi()
     json = String();
   });
   server.begin();
-  Serial.println("HTTP server started");
+  //Serial.println("HTTP server started");
 }
 
 void initHardware()
 {
-  Serial.begin(115200);
+  //Serial.begin(115200);
 // ESP.wdtDisable();
 }
